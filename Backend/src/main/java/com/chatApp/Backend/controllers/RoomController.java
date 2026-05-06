@@ -19,7 +19,7 @@ public class RoomController {
 
     // Create Room
     @PostMapping
-    public ResponseEntity<?> createRoom(@RequestParam String roomId) {
+    public ResponseEntity<?> createRoom(@RequestBody String roomId) {
         try {
             Room room = service.createRoom(roomId);
             return ResponseEntity.status(HttpStatus.CREATED).body(room);
