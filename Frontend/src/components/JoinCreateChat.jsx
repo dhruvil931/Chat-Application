@@ -1,6 +1,40 @@
-import React from "react";
+import React, { useState } from "react";
+import toast from "react-hot-toast";
 
 const JoinCreateChat = () => {
+  const [detail, setDetail] = useState({
+    roomId: "",
+    userName: "",
+  });
+
+  const handleFormInputChange = (event) => {
+    setDetail({
+      ...detail,
+      [event.target.name]: event.target.value,
+    });
+  };
+
+  const validateForm = () => {
+    if (detail.roomId === "" || detail.userName === "") {
+      toast.error("Invalid Input !!");
+      return false;
+    }
+    return true;
+  };
+
+  const joinRoom = () => {
+    if (validateForm()) {
+      // Join chat
+    }
+  };
+
+  const createRoom = () => {
+    if (validateForm()) {
+      // Create Room
+      
+    }
+  };
+
   return (
     <div
       className="min-h-screen flex items-center justify-center bg-gray-950 text-gray-50 p-8"
@@ -56,6 +90,9 @@ const JoinCreateChat = () => {
           </label>
           <input
             type="text"
+            onChange={handleFormInputChange}
+            value={detail.userName}
+            name="userName"
             placeholder="e.g. Alex Chen"
             autoComplete="off"
             className="w-full px-4 py-3 rounded-xl text-sm text-slate-300 placeholder-slate-800 outline-none transition-all"
@@ -82,6 +119,9 @@ const JoinCreateChat = () => {
           </label>
           <input
             type="text"
+            onChange={handleFormInputChange}
+            value={detail.roomId}
+            name="roomId"
             placeholder="e.g. room-7x9k2"
             autoComplete="off"
             className="w-full px-4 py-3 rounded-xl text-sm text-slate-300 placeholder-slate-800 outline-none transition-all"
@@ -119,12 +159,14 @@ const JoinCreateChat = () => {
         {/* Buttons */}
         <div className="grid grid-cols-2 gap-3">
           <button
+            onClick={joinRoom}
             className="flex items-center justify-center gap-2 py-3 px-5 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5 active:scale-97 cursor-pointer"
             style={{ background: "#4f46e5" }}
           >
             Join Room
           </button>
           <button
+            onClick={createRoom}
             className="flex items-center justify-center gap-2 py-3 px-5 rounded-xl text-sm font-medium transition-all hover:-translate-y-0.5 active:scale-97 cursor-pointer"
             style={{
               background: "rgba(249,115,22,0.13)",
