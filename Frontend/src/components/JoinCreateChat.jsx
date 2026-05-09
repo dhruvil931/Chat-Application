@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { createRoomApi } from "../services/RoomService";
+import { createRoomApi, joinChatApi } from "../services/RoomService";
 import useChatContext from "../context/ChatContext";
 import { useNavigate } from "react-router";
 
@@ -36,9 +36,23 @@ const JoinCreateChat = () => {
     return true;
   };
 
-  const joinRoom = () => {
+  const joinRoom = async () => {
     if (validateForm()) {
       // Join chat
+      try { 
+        const room = await joinChatApi(detail.roomId);
+        toast.success("Joined...");
+        setCurrentUser(detail.userName);
+        setRoomId(room.roomId);
+        SetConnected(true);
+        navigate("/chat");
+      } catch (error) {
+        if (error.response?.status === 404) {
+          toast.error("Room not found");
+        } else {
+          toast.error("Something went wrong");
+        }
+      }
     }
   };
 
@@ -56,7 +70,7 @@ const JoinCreateChat = () => {
         if (error.status == 400) {
           toast.error("Room already exist!!");
         } else {
-          toast.error("Error in creating room");
+          toast.error("Something went wrong");
         }
       }
     }

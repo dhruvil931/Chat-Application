@@ -14,14 +14,11 @@ public class RoomService {
 
     private final RoomRepository repository;
 
-    public Room createRoom(String roomId) {
-        if(repository.findByRoomId(roomId) != null) {
+    public Room createRoom(Room room) {
+
+        if(repository.findByRoomId(room.getRoomId()) != null) {
             throw new RuntimeException("Room already exists");
         }
-
-        // Create new room
-        Room room = new Room();
-        room.setRoomId(roomId);
 
         return repository.save(room);
     }

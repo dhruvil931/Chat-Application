@@ -2,6 +2,7 @@ package com.chatApp.Backend.controllers;
 
 import com.chatApp.Backend.entities.Message;
 import com.chatApp.Backend.entities.Room;
+import com.chatApp.Backend.repositories.RoomRepository;
 import com.chatApp.Backend.services.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,17 +14,19 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/rooms")
 @RequiredArgsConstructor
-@CrossOrigin("http://localhost:5173")   
+@CrossOrigin("http://localhost:5173")
 public class RoomController {
 
     private final RoomService service;
+    private final RoomRepository repository;
 
     // Create Room
     @PostMapping
-    public ResponseEntity<?> createRoom(@RequestBody String roomId) {
+    public ResponseEntity<?> createRoom(@RequestBody Room room) {
         try {
-            Room room = service.createRoom(roomId);
-            return ResponseEntity.status(HttpStatus.CREATED).body(room);
+            Room createdRoom = service.createRoom(room);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdRoom);
+
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
@@ -32,6 +35,7 @@ public class RoomController {
     // Get room: Join
     @GetMapping("/{roomId}")
     public ResponseEntity<?> joinRoom(@PathVariable String roomId) {
+        System.out.println(repository.findAll());
         try {
             Room room = service.joinRoom(roomId);
             return ResponseEntity.ok(room);
