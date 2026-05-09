@@ -1,11 +1,25 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
+import { createRoomApi } from "../services/RoomService";
+import useChatContext from "../context/ChatContext";
+import { useNavigate } from "react-router";
 
 const JoinCreateChat = () => {
   const [detail, setDetail] = useState({
     roomId: "",
     userName: "",
   });
+
+  const navigate = useNavigate();
+
+  const {
+    roomId,
+    setRoomId,
+    currentUser,
+    setCurrentUser,
+    connected,
+    SetConnected,
+  } = useChatContext();
 
   const handleFormInputChange = (event) => {
     setDetail({
@@ -16,7 +30,7 @@ const JoinCreateChat = () => {
 
   const validateForm = () => {
     if (detail.roomId === "" || detail.userName === "") {
-      toast.error("Invalid Input !!");
+      toast.error("Invalid Input!!");
       return false;
     }
     return true;
@@ -28,10 +42,23 @@ const JoinCreateChat = () => {
     }
   };
 
-  const createRoom = () => {
+  const createRoom = async () => {
     if (validateForm()) {
       // Create Room
-      
+      try {
+        const response = await createRoomApi(detail);
+        toast.success("Room created successfully");
+        setCurrentUser(detail.userName);
+        setRoomId(detail.roomId);
+        SetConnected(true);
+        navigate("/chat");
+      } catch (error) {
+        if (error.status == 400) {
+          toast.error("Room already exist!!");
+        } else {
+          toast.error("Error in creating room");
+        }
+      }
     }
   };
 
