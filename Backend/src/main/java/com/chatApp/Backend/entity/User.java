@@ -20,7 +20,7 @@ import java.util.List;
 @Document(collection = "users")
 public class User implements UserDetails {
     @Id
-    private Long id;
+    private String id;
 
     @Indexed(unique = true)
     private String username;
