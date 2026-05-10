@@ -6,6 +6,7 @@ import SockJS from "sockjs-client";
 import { baseURL } from "../config/axios";
 import { Stomp } from "@stomp/stompjs";
 import toast from "react-hot-toast";
+import { getMessagesApi } from "../services/RoomService";
 
 const ChatPage = () => {
   const [input, setInput] = useState("");
@@ -23,7 +24,7 @@ const ChatPage = () => {
     if (!connected) {
       navigate("/");
     }
-  }, [connected, currentUser, roomId]);
+  }, [connected]);
 
   const [messages, setMessages] = useState([
     {
@@ -47,6 +48,21 @@ const ChatPage = () => {
   const chatBoxRef = useRef(null);
   const [stompClient, setStompClient] = useState(null);
 
+  // Page init, Msg load
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const messages = await getMessagesApi(roomId);
+        console.log(messages);
+        setMessages(data);
+      } catch (error) {
+        console.log(error);
+        toast.error("Failed to load messages");
+      }
+    };
+    loadMessages();
+  }, []);
+
   useEffect(() => {
     const connectWebSocket = () => {
       // SockJS
@@ -65,14 +81,14 @@ const ChatPage = () => {
 
           const newMessage = JSON.parse(message.body);
 
-          setMessages([...prev, newMessage]);
+          setMessages((prev) => [...prev, newMessage]);
         });
       });
     };
-
     connectWebSocket();
   }, [roomId]);
 
+  // Manage time
   const timeAgo = (timestamp) => {
     if (!timestamp) {
       return "now";
@@ -87,21 +103,38 @@ const ChatPage = () => {
     return `${Math.floor(diff / 86400)}d ago`;
   };
 
+  // Handle send button
   const sendMessage = () => {
     if (!input.trim()) return;
 
-    const newMessage = {
-      content: input,
-      sender: currentUser,
-      timeStamp: new Date(),
-    };
+    if (stompClient && connected && input.trim()) {
+      const newMessage = {
+        content: input,
+        sender: currentUser,
+        timeStamp: new Date(),
+      };
 
-    setMessages((prev) => [...prev, newMessage]);
-    setInput("");
+      stompClient.send(
+        `/app/sendMessage/${roomId}`,
+        {},
+        JSON.stringify(newMessage),
+      );
+      setInput("");
+    }
   };
 
+  // Scroll down when new msg arrived
+  useEffect(() => {
+    setTimeout(() => {
+      chatBoxRef.current?.scrollTo({
+        top: chatBoxRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }, 100);
+  }, [messages]);
+
   return (
-    <div className="min-h-screen bg-[#030712] text-gray-50 flex flex-col">
+    <div className="h-screen overflow-hidden bg-[#030712] text-gray-50 flex flex-col">
       {/* ── Header ── */}
       <header className="fixed top-0 w-full z-20 bg-[#0d1117] border-b border-white/[0.07] shadow-[0_1px_24px_rgba(0,0,0,0.4)]">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -213,11 +246,13 @@ const ChatPage = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") sendMessage();
+              if (e.key === "Enter" && input.trim()) {
+                sendMessage();
+              }
             }}
             type="text"
             placeholder="Type a message..."
-            className="flex-1 bg-transparent border-none outline-none text-slate-300 text-[13.5px] placeholder-slate-800 py-2"
+            className="flex-1 bg-transparent border-none outline-none text-slate-300 text-[13.5px] placeholder-slate-500 py-2"
           />
 
           {/* Attach */}
