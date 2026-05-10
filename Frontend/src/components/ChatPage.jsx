@@ -27,7 +27,6 @@ const ChatPage = () => {
   }, [connected]);
 
   const [messages, setMessages] = useState([]);
-  const inputRef = useRef(null);
   const chatBoxRef = useRef(null);
   const [stompClient, setStompClient] = useState(null);
 
@@ -42,26 +41,30 @@ const ChatPage = () => {
       }
     };
 
-    loadMessages();
+    if (connected) {
+      loadMessages();
+    }
   }, []);
 
   useEffect(() => {
-    // SockJS and making Client
-    const client = Stomp.over(() => new SockJS(`${baseURL}/chat`));
+    const connectWebSocket = () => {
+      // SockJS and making Client
+      const client = Stomp.over(() => new SockJS(`${baseURL}/chat`));
 
-    client.connect({}, () => {
-      setStompClient(client);
-      toast.success("Connected");
+      client.connect({}, () => {
+        setStompClient(client);
+        toast.success("Connected");
 
-      client.subscribe(`/topic/room/${roomId}`, (message) => {
-        const newMessage = JSON.parse(message.body);
-        setMessages((prev) => [...prev, newMessage]);
+        client.subscribe(`/topic/room/${roomId}`, (message) => {
+          const newMessage = JSON.parse(message.body);
+          setMessages((prev) => [...prev, newMessage]);
+        });
       });
-    });
-
-    return () => {
-      client.disconnect();
     };
+
+    if (connected) {
+      connectWebSocket();
+    }
   }, [roomId]);
 
   // Manage time
@@ -96,6 +99,14 @@ const ChatPage = () => {
     }
   };
 
+  const handleLeaveRoom = () => {
+    stompClient.disconnect();
+    SetConnected(false);
+    setRoomId("");
+    setCurrentUser("");
+    navigate("/");
+  };
+
   // Scroll down when new msg arrived
   useEffect(() => {
     setTimeout(() => {
@@ -118,7 +129,7 @@ const ChatPage = () => {
               Room
             </span>
             <span className="text-sm font-bold text-slate-100 bg-indigo-500/10 border border-indigo-500/25 rounded-lg px-2.5 py-0.5">
-              Family Room
+              {roomId}
             </span>
           </div>
 
@@ -130,12 +141,15 @@ const ChatPage = () => {
               className="w-7 h-7 rounded-lg object-cover ring-1 ring-indigo-500/30"
             />
             <span className="text-[13px] font-medium text-slate-400">
-              Dhruvil Kapadiya
+              {currentUser}
             </span>
           </div>
 
           {/* Leave */}
-          <button className="text-red-400 text-xs font-semibold bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 hover:border-red-500/40 transition-all duration-150 hover:-translate-y-px active:scale-95 px-4 py-2 rounded-xl cursor-pointer tracking-wide">
+          <button
+            onClick={handleLeaveRoom}
+            className="text-red-400 text-xs font-semibold bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 hover:border-red-500/40 transition-all duration-150 hover:-translate-y-px active:scale-95 px-4 py-2 rounded-xl cursor-pointer tracking-wide"
+          >
             Leave Room
           </button>
         </div>
@@ -215,7 +229,6 @@ const ChatPage = () => {
       <div className="fixed bottom-0 w-full bg-[#0d1117] border-t border-white/[0.07] py-3 px-4">
         <div className="max-w-4xl mx-auto flex items-center gap-2 bg-[#080d16] border border-white/[0.09] focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/[0.08] rounded-2xl px-4 py-1.5 transition-all duration-200">
           <input
-            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
