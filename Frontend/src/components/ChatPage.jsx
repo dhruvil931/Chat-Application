@@ -38,8 +38,6 @@ const ChatPage = () => {
         const data = await getMessagesApi(roomId);
         setMessages(data);
       } catch (error) {
-        console.log(error);
-
         toast.error("Failed to load messages");
       }
     };
@@ -48,11 +46,8 @@ const ChatPage = () => {
   }, []);
 
   useEffect(() => {
-    // SockJS
-    const socket = new SockJS(`${baseURL}/chat`);
-
-    // Make Client
-    const client = Stomp.over(socket);
+    // SockJS and making Client
+    const client = Stomp.over(() => new SockJS(`${baseURL}/chat`));
 
     client.connect({}, () => {
       setStompClient(client);
@@ -64,11 +59,8 @@ const ChatPage = () => {
       });
     });
 
-    // Cleanup on unmount
     return () => {
-      if (client.connected) {
-        client.disconnect();
-      }
+      client.disconnect();
     };
   }, [roomId]);
 
@@ -89,23 +81,17 @@ const ChatPage = () => {
 
   // Handle send button
   const sendMessage = () => {
-    if (!input.trim()) return;
-
     if (stompClient && connected && input.trim()) {
       const newMessage = {
         content: input,
-        sender: currentUser || "Dhruvil",
+        sender: currentUser,
         timeStamp: new Date(),
       };
-
-      console.log(newMessage);
-
       stompClient.send(
         `/app/sendMessage/${roomId}`,
         {},
         JSON.stringify(newMessage),
       );
-      setMessages((prev) => [...prev, newMessage]);
       setInput("");
     }
   };
