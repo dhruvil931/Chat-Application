@@ -1,14 +1,104 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { MdAttachFile, MdSend } from "react-icons/md";
+import useChatContext from "../context/ChatContext";
+import { useNavigate } from "react-router";
+import SockJS from "sockjs-client";
+import { baseURL } from "../config/axios";
+import { Stomp } from "@stomp/stompjs";
+import toast from "react-hot-toast";
 
 const ChatPage = () => {
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([]);
+  const navigate = useNavigate();
+  const {
+    roomId,
+    setRoomId,
+    currentUser,
+    setCurrentUser,
+    connected,
+    SetConnected,
+  } = useChatContext();
+
+  useEffect(() => {
+    if (!connected) {
+      navigate("/");
+    }
+  }, [connected, currentUser, roomId]);
+
+  const [messages, setMessages] = useState([
+    {
+      content: "Hello ?",
+      sender: "Dhruvil",
+    },
+    {
+      content: "Hello ?",
+      sender: "Rahul",
+    },
+    {
+      content: "Hello ?",
+      sender: "Kin",
+    },
+    {
+      content: "Hello ?",
+      sender: "Dhruvil",
+    },
+  ]);
   const inputRef = useRef(null);
   const chatBoxRef = useRef(null);
   const [stompClient, setStompClient] = useState(null);
-  const [roomId, setRoomId] = useState("");
-  const [currentUser] = useState("");
+
+  useEffect(() => {
+    const connectWebSocket = () => {
+      // SockJS
+      const socket = new SockJS(`${baseURL}/chat`);
+
+      // Make Client
+      const client = Stomp.over(socket);
+
+      client.connect({}, () => {
+        setStompClient(client);
+
+        toast.success("Connected");
+
+        client.subscribe(`/topic/room/${roomId}`, (message) => {
+          console.log(message);
+
+          const newMessage = JSON.parse(message.body);
+
+          setMessages([...prev, newMessage]);
+        });
+      });
+    };
+
+    connectWebSocket();
+  }, [roomId]);
+
+  const timeAgo = (timestamp) => {
+    if (!timestamp) {
+      return "now";
+    }
+
+    const diff = Math.floor((Date.now() - new Date(timestamp)) / 1000);
+
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
+
+  const sendMessage = () => {
+    if (!input.trim()) return;
+
+    const newMessage = {
+      content: input,
+      sender: currentUser,
+      timeStamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+    setInput("");
+  };
 
   return (
     <div className="min-h-screen bg-[#030712] text-gray-50 flex flex-col">
@@ -29,7 +119,7 @@ const ChatPage = () => {
           {/* User */}
           <div className="flex items-center gap-2.5">
             <img
-              src="https://avatar.iran.liara.run/public/43"
+              src="https://i.pravatar.cc/150"
               alt="avatar"
               className="w-7 h-7 rounded-lg object-cover ring-1 ring-indigo-500/30"
             />
