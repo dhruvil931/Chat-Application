@@ -21,7 +21,7 @@ public class ChatController {
     // For sending and receiving message
     @MessageMapping("/sendMessage/{roomId}") // Coming msg - /app/sendMessage/roomId
     @SendTo("/topic/room/{roomId}") // Client Subscribe
-    public ResponseEntity<Message> sendMessage(@DestinationVariable String roomId, @RequestBody MessageRequestDto request) {
-        return ResponseEntity.ok(chatService.sendMessage(roomId, request));
+    public Message sendMessage(@DestinationVariable String roomId, @RequestBody MessageRequestDto request) {
+        return chatService.sendMessage(roomId, request);
     }
 }

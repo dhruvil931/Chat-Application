@@ -15,7 +15,7 @@ public class ChatService {
     private final RoomRepository roomRepository;
 
     public Message sendMessage(String roomId, MessageRequestDto request) {
-        Room room = roomRepository.findByRoomId(request.getRoomId());
+        Room room = roomRepository.findByRoomId(roomId);
 
         Message message = new Message();
         message.setContent(request.getContent());

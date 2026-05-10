@@ -26,24 +26,7 @@ const ChatPage = () => {
     }
   }, [connected]);
 
-  const [messages, setMessages] = useState([
-    {
-      content: "Hello ?",
-      sender: "Dhruvil",
-    },
-    {
-      content: "Hello ?",
-      sender: "Rahul",
-    },
-    {
-      content: "Hello ?",
-      sender: "Kin",
-    },
-    {
-      content: "Hello ?",
-      sender: "Dhruvil",
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
   const inputRef = useRef(null);
   const chatBoxRef = useRef(null);
   const [stompClient, setStompClient] = useState(null);
@@ -52,40 +35,41 @@ const ChatPage = () => {
   useEffect(() => {
     const loadMessages = async () => {
       try {
-        const messages = await getMessagesApi(roomId);
-        console.log(messages);
+        const data = await getMessagesApi(roomId);
         setMessages(data);
       } catch (error) {
         console.log(error);
+
         toast.error("Failed to load messages");
       }
     };
+
     loadMessages();
   }, []);
 
   useEffect(() => {
-    const connectWebSocket = () => {
-      // SockJS
-      const socket = new SockJS(`${baseURL}/chat`);
+    // SockJS
+    const socket = new SockJS(`${baseURL}/chat`);
 
-      // Make Client
-      const client = Stomp.over(socket);
+    // Make Client
+    const client = Stomp.over(socket);
 
-      client.connect({}, () => {
-        setStompClient(client);
+    client.connect({}, () => {
+      setStompClient(client);
+      toast.success("Connected");
 
-        toast.success("Connected");
-
-        client.subscribe(`/topic/room/${roomId}`, (message) => {
-          console.log(message);
-
-          const newMessage = JSON.parse(message.body);
-
-          setMessages((prev) => [...prev, newMessage]);
-        });
+      client.subscribe(`/topic/room/${roomId}`, (message) => {
+        const newMessage = JSON.parse(message.body);
+        setMessages((prev) => [...prev, newMessage]);
       });
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (client.connected) {
+        client.disconnect();
+      }
     };
-    connectWebSocket();
   }, [roomId]);
 
   // Manage time
@@ -110,15 +94,18 @@ const ChatPage = () => {
     if (stompClient && connected && input.trim()) {
       const newMessage = {
         content: input,
-        sender: currentUser,
+        sender: currentUser || "Dhruvil",
         timeStamp: new Date(),
       };
+
+      console.log(newMessage);
 
       stompClient.send(
         `/app/sendMessage/${roomId}`,
         {},
         JSON.stringify(newMessage),
       );
+      setMessages((prev) => [...prev, newMessage]);
       setInput("");
     }
   };
@@ -265,6 +252,7 @@ const ChatPage = () => {
 
           {/* Send */}
           <button
+            onClick={sendMessage}
             aria-label="Send message"
             className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all duration-150 text-white text-[13px] font-semibold px-4 py-2.5 rounded-xl cursor-pointer shadow-[0_2px_12px_rgba(99,102,241,0.25)] hover:shadow-[0_4px_18px_rgba(99,102,241,0.4)]"
           >
