@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @Controller
 @RequiredArgsConstructor
-@CrossOrigin("http://localhost:5173")
 public class ChatController {
     private final ChatService chatService;
 
