@@ -15,7 +15,7 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JwtService {
     @Value("${jwt.secret}")
-    private final String secret;
+    private String secret;
 
     private Key getKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
