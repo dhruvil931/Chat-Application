@@ -1,6 +1,7 @@
 package com.chatApp.Backend.security;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
 
@@ -30,7 +32,12 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .cors(Customizer.withDefaults())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .oauth2Login(oAuth2 -> oAuth2.failureHandler(
+                        (request, response, exception) -> {
+                            log.error("OAuth2 error: {}", exception.getMessage());
+                        }
+                ));
         return httpSecurity.build();
     }
 
