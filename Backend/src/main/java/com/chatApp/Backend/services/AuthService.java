@@ -24,9 +24,13 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(loginRequestDto.getUsername(), loginRequestDto.getPassword())
         );
 
-        String username = authentication.getName();
+        User user = userRepository.findByUsername(
+                loginRequestDto.getUsername()
+        ).orElseThrow(() ->
+                new RuntimeException("Invalid username or password")
+        );
 
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        String username = authentication.getName();
 
         String token = jwtService.generateToken(user.getUsername());
 
