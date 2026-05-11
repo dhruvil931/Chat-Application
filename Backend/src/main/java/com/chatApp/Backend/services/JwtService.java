@@ -17,9 +17,6 @@ public class JwtService {
     @Value("${jwt.secret}")
     private final String secret;
 
-    @Value("${jwt.expiration}")
-    private long expiration;
-
     private Key getKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
@@ -41,18 +38,5 @@ public class JwtService {
                 .getBody();
 
         return claims.getSubject();
-    }
-
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parserBuilder()
-                    .setSigningKey(getKey())
-                    .build()
-                    .parseClaimsJws(token);
-
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
     }
 }
