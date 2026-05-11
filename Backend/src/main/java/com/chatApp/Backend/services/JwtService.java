@@ -43,5 +43,16 @@ public class JwtService {
         return claims.getSubject();
     }
 
-    
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(getKey())
+                    .build()
+                    .parseClaimsJws(token);
+
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }
