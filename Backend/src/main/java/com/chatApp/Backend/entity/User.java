@@ -1,5 +1,6 @@
 package com.chatApp.Backend.entity;
 
+import com.chatApp.Backend.entities.type.AuthProviderType;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -24,6 +25,10 @@ public class User implements UserDetails {
     private String username;
 
     private String password;
+
+    private String providerId;
+
+    private AuthProviderType providerType;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
