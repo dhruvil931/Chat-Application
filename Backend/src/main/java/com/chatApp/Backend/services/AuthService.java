@@ -24,17 +24,11 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(loginRequestDto.getUsername(), loginRequestDto.getPassword())
         );
 
-        User user = userRepository.findByUsername(
-                loginRequestDto.getUsername()
-        ).orElseThrow(() ->
-                new RuntimeException("Invalid username or password")
-        );
+        User user = (User) authentication.getPrincipal();
 
-        String username = authentication.getName();
+        String token = jwtService.generateToken(user.getId(), user.getUsername());
 
-        String token = jwtService.generateToken(user.getUsername());
-
-        return new LoginResponseDto(token, username);
+        return new LoginResponseDto(token);
     }
 
     public void register(LoginRequestDto loginRequestDto) {
