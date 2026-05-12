@@ -2,6 +2,7 @@ package com.chatApp.Backend.entity;
 
 import com.chatApp.Backend.entities.type.AuthProviderType;
 import lombok.*;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -22,13 +23,23 @@ public class User implements UserDetails {
     private String id;
 
     @Indexed(unique = true)
-    private String username;
+    private String email;
 
-    private String password;
+    private String name;
+    private String profilePhoto;
 
     private String providerId;
-
     private AuthProviderType providerType;
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public String getPassword() {
+        return null;
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
