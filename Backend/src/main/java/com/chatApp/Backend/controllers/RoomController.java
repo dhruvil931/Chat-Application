@@ -22,9 +22,7 @@ public class RoomController {
     @PostMapping
     public ResponseEntity<?> createRoom(@RequestBody RoomRequestDto roomRequestDto) {
         try {
-            Room room = new Room();
-            room.setRoomId(roomRequestDto.getRoomId());
-            Room createdRoom = service.createRoom(room);
+            Room createdRoom = service.createRoom(roomRequestDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdRoom);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());

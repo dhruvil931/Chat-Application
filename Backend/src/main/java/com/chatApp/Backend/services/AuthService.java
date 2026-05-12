@@ -27,6 +27,10 @@ public class AuthService {
         String name = authUtil.determineNameFromOAuth2User(oAuth2User, registrationId);
         String profilePhoto = authUtil.determineProfilePhotoFromOAuth2User(oAuth2User, registrationId);
 
+        if (email == null || email.isBlank()) {
+            throw new IllegalStateException("Email not provided by OAuth2 provider: " + registrationId);
+        }
+
         User user = userRepository.findByProviderIdAndProviderType(providerId, providerType).orElse(null);
 
         if(user == null && email != null) {
@@ -34,10 +38,6 @@ public class AuthService {
             if(user != null && user.getProviderType() != providerType) {
                 throw new BadCredentialsException("This email is already registered with provider " + user.getProviderType());
             }
-        }
-
-        if (email == null || email.isBlank()) {
-            throw new IllegalStateException("Email not provided by OAuth2 provider: " + registrationId);
         }
 
         if(user == null) {

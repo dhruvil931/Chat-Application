@@ -1,5 +1,6 @@
 package com.chatApp.Backend.services;
 
+import com.chatApp.Backend.dto.RoomRequestDto;
 import com.chatApp.Backend.entities.Message;
 import com.chatApp.Backend.entities.Room;
 import com.chatApp.Backend.repositories.RoomRepository;
@@ -14,12 +15,14 @@ public class RoomService {
 
     private final RoomRepository repository;
 
-    public Room createRoom(Room room) {
+    public Room createRoom(RoomRequestDto roomRequestDto) {
 
-        if(repository.findByRoomId(room.getRoomId()) != null) {
+        if(repository.findByRoomId(roomRequestDto.getRoomId()) != null) {
             throw new RuntimeException("Room already exists");
         }
 
+        Room room = new Room();
+        room.setRoomId(roomRequestDto.getRoomId());
         return repository.save(room);
     }
 
