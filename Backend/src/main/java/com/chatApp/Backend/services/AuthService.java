@@ -20,73 +20,46 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-    private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
     private final AuthUtil authUtil;
-
-    public LoginResponseDto login(LoginRequestDto loginRequestDto) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequestDto.getUsername(), loginRequestDto.getPassword())
-        );
-
-        User user = (User) authentication.getPrincipal();
-
-        String token = jwtService.generateToken(user.getId(), user.getUsername());
-
-        return new LoginResponseDto(token);
-    }
-    public User signupInternal(LoginRequestDto loginRequestDto, AuthProviderType providerType, String providerId) {
-        User existingUser = userRepository.findByEmail(loginRequestDto.getUsername()).orElse(null);
-
-        if(existingUser != null) {
-            throw new RuntimeException("Username already exists");
-        }
-
-        User user = User.builder()
-                .username(loginRequestDto.getUsername())
-                .providerId(providerId)
-                .providerType(providerType)
-                .build();
-
-        if(providerType == null) {
-            user.setPassword(passwordEncoder.encode(loginRequestDto.getPassword()));
-        }
-
-        return userRepository.save(user);
-    }
-
-    public void register(LoginRequestDto loginRequestDto) {
-        signupInternal(loginRequestDto, null, null);
-    }
 
     @Transactional
     public ResponseEntity<LoginResponseDto> handleOAuth2LoginRequest(OAuth2User oAuth2User, String registrationId) {
-        // Fetch providerType and providerId
         AuthProviderType providerType = authUtil.getProviderTypeFromRegistrationId(registrationId);
         String providerId = authUtil.determineProviderIdFromOAuth2User(oAuth2User, registrationId);
+        String email = oAuth2User.getAttribute("email");
+        String name = authUtil.determineNameFromOAuth2User(oAuth2User, registrationId);
+        String profilePhoto = authUtil.determineProfilePhotoFromOAuth2User(oAuth2User, registrationId);
 
         User user = userRepository.findByProviderIdAndProviderType(providerId, providerType).orElse(null);
-        String email = oAuth2User.getAttribute("email");
 
-        User emailUser = userRepository.findByEmail(email).orElse(null);
-
-        if(user == null && emailUser == null) {
-            // Signup flow
-            String username = authUtil.determineUsernameFromOAuth2User(oAuth2User, registrationId, providerId);
-            user = signupInternal(new LoginRequestDto(username, null), providerType, providerId);
-        } else if (user != null) {
-            if(email != null && !email.isBlank() && !email.equals(user.getUsername())) {
-                user.setUsername(email);
-                userRepository.save(user);
+        if(user == null && email != null) {
+            user = userRepository.findByEmail(email).orElse(null);
+            if(user != null && user.getProviderType() != providerType) {
+                throw new BadCredentialsException("This email is already registered with provider " + user.getProviderType());
             }
-        } else {
-            throw new BadCredentialsException("This email is already registered with provider " + emailUser.getProviderType());
         }
 
-        LoginResponseDto loginResponseDto = new LoginResponseDto(jwtService.generateToken(user.getId(), user.getUsername()));
+        if(user == null) {
+            // First-time signup
+            user = User.builder()
+                    .email(email)
+                    .name(name)
+                    .profilePhoto(profilePhoto)
+                    .providerId(providerId)
+                    .providerType(providerType)
+                    .build();
+        } else {
+            // Existing user — sync latest profile info
+            user.setName(name);
+            user.setProfilePhoto(profilePhoto);
+            if(email != null) user.setEmail(email);
+        }
 
-        return ResponseEntity.ok(loginResponseDto);
+        userRepository.save(user);
+
+        String token = jwtService.generateToken(user.getId(), user.getEmail());
+        return ResponseEntity.ok(new LoginResponseDto(token));
     }
 }
