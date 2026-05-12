@@ -5,13 +5,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 @Component
 @Slf4j
 public class AuthUtil {
     public AuthProviderType getProviderTypeFromRegistrationId(String registrationId) {
         return switch (registrationId.toLowerCase()) {
-            case "google" -> AuthProviderType.GOOGLE;
-            case "github" -> AuthProviderType.GITHUB;
+            case "google"    -> AuthProviderType.GOOGLE;
+            case "facebook"  -> AuthProviderType.FACEBOOK;
+            case "microsoft" -> AuthProviderType.MICROSOFT;
+            case "linkedin"  -> AuthProviderType.LINKEDIN;
             default -> throw new IllegalArgumentException("Unsupported OAuth2 provider: " + registrationId);
         };
     }
@@ -19,26 +23,47 @@ public class AuthUtil {
     public String determineProviderIdFromOAuth2User(OAuth2User oAuth2User, String registrationId) {
         String providerId = switch (registrationId.toLowerCase()) {
             case "google" -> oAuth2User.getAttribute("sub");
-            case "github" -> oAuth2User.getAttribute("id").toString();
-            default -> {
-                log.error("Unsupported OAuth2 provider: {}" + registrationId);
-                throw new IllegalArgumentException("Unsupported OAuth2 provider: " + registrationId);
-            }
+            case "facebook"  -> oAuth2User.getAttribute("id");
+            case "microsoft" -> oAuth2User.getAttribute("sub");
+            case "linkedin"  -> oAuth2User.getAttribute("sub");
+            default -> throw new IllegalArgumentException("Unsupported OAuth2 provider: " + registrationId);
         };
 
-        if (providerId == null || providerId.isBlank()) {
-            log.error("Unable to determine providerId for provider: {}", registrationId);
+        if (providerId == null || providerId.toString().isBlank()) {
             throw new IllegalArgumentException("Unable to determine providerId for OAuth2 login");
         }
-
-        return providerId;
+        return providerId.toString();
     }
 
-    public String determineUsernameFromOAuth2User(OAuth2User oAuth2User, String registrationId, String providerId) {
+    public String determineNameFromOAuth2User(OAuth2User oAuth2User, String registrationId) {
         return switch (registrationId.toLowerCase()) {
-            case "google" -> oAuth2User.getAttribute("sub");
-            case "github" -> oAuth2User.getAttribute("login");
-            default -> providerId;
+            case "google", "facebook", "microsoft", "linkedin" -> oAuth2User.getAttribute("name");
+            default -> "Unknown";
+        };
+    }
+
+    public String determineProfilePhotoFromOAuth2User(OAuth2User oAuth2User, String registrationId) {
+        if (registrationId == null) {
+            return null;
+        }
+
+        return switch (registrationId.toLowerCase()) {
+            case "google" -> oAuth2User.getAttribute("picture");
+            case "facebook" -> {
+                Object pictureObj = oAuth2User.getAttribute("picture");
+                if (pictureObj instanceof Map<?, ?> pictureMap) {
+                    Object dataObj = pictureMap.get("data");
+                    if (dataObj instanceof Map<?, ?> dataMap) {
+                        Object url = dataMap.get("url");
+                        yield url != null ? url.toString() : null;
+                    }
+                }
+                yield null;
+            }
+            case "linkedin" -> oAuth2User.getAttribute("picture");
+            case "microsoft" -> null;
+
+            default -> null;
         };
     }
 }
