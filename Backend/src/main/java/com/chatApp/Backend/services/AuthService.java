@@ -1,6 +1,5 @@
 package com.chatApp.Backend.services;
 
-import com.chatApp.Backend.dto.LoginRequestDto;
 import com.chatApp.Backend.dto.LoginResponseDto;
 import com.chatApp.Backend.entities.type.AuthProviderType;
 import com.chatApp.Backend.entity.User;
@@ -8,11 +7,7 @@ import com.chatApp.Backend.repositories.UserRepository;
 import com.chatApp.Backend.security.AuthUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

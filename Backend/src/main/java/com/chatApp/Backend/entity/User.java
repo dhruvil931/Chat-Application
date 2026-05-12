@@ -2,7 +2,6 @@ package com.chatApp.Backend.entity;
 
 import com.chatApp.Backend.entities.type.AuthProviderType;
 import lombok.*;
-import org.jspecify.annotations.Nullable;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
