@@ -38,7 +38,7 @@ public class AuthService {
         return new LoginResponseDto(token);
     }
     public User signupInternal(LoginRequestDto loginRequestDto, AuthProviderType providerType, String providerId) {
-        User existingUser = userRepository.findByUsername(loginRequestDto.getUsername()).orElse(null);
+        User existingUser = userRepository.findByEmail(loginRequestDto.getUsername()).orElse(null);
 
         if(existingUser != null) {
             throw new RuntimeException("Username already exists");
@@ -70,7 +70,7 @@ public class AuthService {
         User user = userRepository.findByProviderIdAndProviderType(providerId, providerType).orElse(null);
         String email = oAuth2User.getAttribute("email");
 
-        User emailUser = userRepository.findByUsername(email).orElse(null);
+        User emailUser = userRepository.findByEmail(email).orElse(null);
 
         if(user == null && emailUser == null) {
             // Signup flow
