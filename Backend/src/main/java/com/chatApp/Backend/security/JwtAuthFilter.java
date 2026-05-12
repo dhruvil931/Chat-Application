@@ -1,6 +1,6 @@
 package com.chatApp.Backend.security;
 
-import com.chatApp.Backend.entity.User;
+import com.chatApp.Backend.entities.User;
 import com.chatApp.Backend.repositories.UserRepository;
 import com.chatApp.Backend.services.JwtService;
 import jakarta.servlet.FilterChain;
@@ -35,7 +35,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String token = requestTokenHeader.split("Bearer")[1];
+            String token = requestTokenHeader.split("Bearer ")[1];
 
             String username = jwtService.extractUsername(token);
 

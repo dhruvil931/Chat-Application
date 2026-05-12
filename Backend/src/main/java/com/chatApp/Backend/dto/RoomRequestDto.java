@@ -2,16 +2,15 @@ package com.chatApp.Backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
-@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
-public class LoginRequestDto {
+@AllArgsConstructor
+public class RoomRequestDto {
     @NotBlank
-    private String username;
-
-    @NotBlank
-    private String password;
+    private String roomId;
 }

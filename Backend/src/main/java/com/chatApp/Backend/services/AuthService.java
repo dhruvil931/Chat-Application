@@ -2,7 +2,7 @@ package com.chatApp.Backend.services;
 
 import com.chatApp.Backend.dto.LoginResponseDto;
 import com.chatApp.Backend.entities.type.AuthProviderType;
-import com.chatApp.Backend.entity.User;
+import com.chatApp.Backend.entities.User;
 import com.chatApp.Backend.repositories.UserRepository;
 import com.chatApp.Backend.security.AuthUtil;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +34,10 @@ public class AuthService {
             if(user != null && user.getProviderType() != providerType) {
                 throw new BadCredentialsException("This email is already registered with provider " + user.getProviderType());
             }
+        }
+
+        if (email == null || email.isBlank()) {
+            throw new IllegalStateException("Email not provided by OAuth2 provider: " + registrationId);
         }
 
         if(user == null) {

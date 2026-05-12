@@ -1,9 +1,50 @@
 spring:
-  security.oauth2.client:
-    registration:
-      google:
-        client-id: 439693155667-5kn2agr08ks11lka3tje4c4q7170oceh.apps.googleusercontent.com
-        client-secret: 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
-      github:
-        client-id: dsdsdsaw
-        client-secret: sasxqaxsaxs
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: YOUR_GOOGLE_CLIENT_ID
+            client-secret: YOUR_GOOGLE_CLIENT_SECRET
+            scope:
+              - openid
+              - profile
+              - email
+
+          facebook:
+            client-id: YOUR_FACEBOOK_APP_ID
+            client-secret: YOUR_FACEBOOK_APP_SECRET
+            scope:
+              - email
+              - public_profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+
+          microsoft:
+            client-id: YOUR_AZURE_CLIENT_ID
+            client-secret: YOUR_AZURE_CLIENT_SECRET
+            scope:
+              - openid
+              - profile
+              - email
+
+          linkedin:
+            client-id: YOUR_LINKEDIN_CLIENT_ID
+            client-secret: YOUR_LINKEDIN_CLIENT_SECRET
+            scope:
+              - openid
+              - profile
+              - email
+            authorization-grant-type: authorization_code
+
+        provider:
+          microsoft:
+            authorization-uri: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+            token-uri: https://login.microsoftonline.com/common/oauth2/v2.0/token
+            user-info-uri: https://graph.microsoft.com/oidc/userinfo
+            user-name-attribute: sub
+
+          linkedin:
+            authorization-uri: https://www.linkedin.com/oauth/v2/authorization
+            token-uri: https://www.linkedin.com/oauth/v2/accessToken
+            user-info-uri: https://api.linkedin.com/v2/userinfo
+            user-name-attribute: sub

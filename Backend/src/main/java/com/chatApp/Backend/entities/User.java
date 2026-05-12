@@ -1,4 +1,4 @@
-package com.chatApp.Backend.entity;
+package com.chatApp.Backend.entities;
 
 import com.chatApp.Backend.entities.type.AuthProviderType;
 import lombok.*;

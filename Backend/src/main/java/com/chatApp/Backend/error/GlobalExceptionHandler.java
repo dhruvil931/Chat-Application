@@ -22,7 +22,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiError> handleBadCredentialsException(BadCredentialsException ex) {
-        ApiError apiError = new ApiError("Invalid username or password", HttpStatus.UNAUTHORIZED);
+        ApiError apiError = new ApiError(ex.getMessage(), HttpStatus.UNAUTHORIZED);
 
         return new ResponseEntity<>(apiError, apiError.getStatusCode());
     }

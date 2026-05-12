@@ -1,7 +1,7 @@
 package com.chatApp.Backend.repositories;
 
 import com.chatApp.Backend.entities.type.AuthProviderType;
-import com.chatApp.Backend.entity.User;
+import com.chatApp.Backend.entities.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Optional;
