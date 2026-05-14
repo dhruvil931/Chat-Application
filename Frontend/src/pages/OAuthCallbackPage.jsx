@@ -18,9 +18,12 @@ const OAuthCallbackPage = () => {
 
   useEffect(() => {
     const token = searchParams.get("token");
+    const error = searchParams.get("error");
     if (token) {
       setToken(token);
       navigate("/join", { replace: true });
+    } else if (error) {
+      setError("Authentication failed. Please try again.");
     } else {
       setError("Authentication failed. No token received.");
     }
