@@ -1,11 +1,7 @@
 import { httpClient } from "../config/axios";
 
 export const createRoomApi = async (roomDetail) => {
-  const response = await httpClient.post("/api/v1/rooms", roomDetail, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+  const response = await httpClient.post("/api/v1/rooms", roomDetail);
   return response.data;
 };
 
