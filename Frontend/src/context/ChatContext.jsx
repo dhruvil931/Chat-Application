@@ -33,7 +33,7 @@ export const ChatProvider = ({ children }) => {
         token,
         setToken,
         connected,
-        SetConnected,
+        setConnected,
         logout,
       }}
     >
