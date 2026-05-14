@@ -14,8 +14,6 @@ public class AuthUtil {
         return switch (registrationId.toLowerCase()) {
             case "google"    -> AuthProviderType.GOOGLE;
             case "facebook"  -> AuthProviderType.FACEBOOK;
-            case "microsoft" -> AuthProviderType.MICROSOFT;
-            case "linkedin"  -> AuthProviderType.LINKEDIN;
             default -> throw new IllegalArgumentException("Unsupported OAuth2 provider: " + registrationId);
         };
     }
@@ -24,8 +22,6 @@ public class AuthUtil {
         String providerId = switch (registrationId.toLowerCase()) {
             case "google" -> oAuth2User.getAttribute("sub");
             case "facebook"  -> oAuth2User.getAttribute("id");
-            case "microsoft" -> oAuth2User.getAttribute("sub");
-            case "linkedin"  -> oAuth2User.getAttribute("sub");
             default -> throw new IllegalArgumentException("Unsupported OAuth2 provider: " + registrationId);
         };
 
@@ -37,7 +33,7 @@ public class AuthUtil {
 
     public String determineNameFromOAuth2User(OAuth2User oAuth2User, String registrationId) {
         return switch (registrationId.toLowerCase()) {
-            case "google", "facebook", "microsoft", "linkedin" -> oAuth2User.getAttribute("name");
+            case "google", "facebook" -> oAuth2User.getAttribute("name");
             default -> "Unknown";
         };
     }
@@ -60,9 +56,6 @@ public class AuthUtil {
                 }
                 yield null;
             }
-            case "linkedin" -> oAuth2User.getAttribute("picture");
-            case "microsoft" -> null;
-
             default -> null;
         };
     }
