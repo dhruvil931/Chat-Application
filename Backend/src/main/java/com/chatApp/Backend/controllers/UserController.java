@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class UserController {
     private final UserRepository userRepository;
-    private JwtService jwtService;
+    private final JwtService jwtService;
 
     /**
      * GET /api/v1/users/me

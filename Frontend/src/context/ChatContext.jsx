@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { httpClient } from "../config/axios";
 
 const ChatContext = createContext();
 

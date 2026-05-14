@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
@@ -177,6 +177,23 @@ const ChatPage = () => {
     });
     setInputMessage("");
     inputRef.current?.focus();
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { value } = e.target;
+    setInputMessage(value);
+
+    // Grow textarea with content until max height, then allow scrolling.
+    e.target.style.height = "auto";
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+  };
+
+  const focusInputBar = (e) => {
+    if (e.target.closest("button")) return;
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e) => {
@@ -295,7 +312,7 @@ const ChatPage = () => {
 
           return (
             <div
-              key={i}
+              key={msg.id}
               className={`flex items-end gap-2.5 ${mine ? "justify-end" : "justify-start"}`}
             >
               {/* Other's avatar — left side */}
@@ -383,20 +400,22 @@ const ChatPage = () => {
         }}
       >
         <div
-          className="flex items-end gap-3 px-4 py-2.5 rounded-2xl transition-all"
+          className="flex items-end gap-3 px-4 py-2.5 rounded-2xl transition-all cursor-text"
+          onClick={focusInputBar}
           style={{
             background: "#0a0f1b",
             border: "1px solid rgba(99,102,241,0.15)",
+            minHeight: "52px",
           }}
         >
           <textarea
             ref={inputRef}
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message…"
             rows={1}
-            className="flex-1 bg-transparent text-sm outline-none resize-none max-h-32 overflow-y-auto"
+            className="flex-1 bg-transparent text-sm outline-none resize-none max-h-32 overflow-y-auto leading-5 py-1"
             style={{ color: "#c7d2fe", caretColor: "#6366f1" }}
           />
           <button

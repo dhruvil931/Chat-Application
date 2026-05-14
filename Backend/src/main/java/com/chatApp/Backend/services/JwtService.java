@@ -45,22 +45,23 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractUsername(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(getKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-
-        return claims.getSubject();
+    public String extractUserId(String token) {
+        return parseClaims(token).getSubject();
     }
 
-    public String extractUserId(String token) {
+    public String extractUsername(String token) {
+        return (String) parseClaims(token).get("email");
+    }
+
+    public String extractEmail(String token) {
+        return (String) parseClaims(token).get("email");
+    }
+
+    private Claims parseClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getKey())
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                .getBody();
     }
 }
