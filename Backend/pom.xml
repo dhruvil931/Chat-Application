@@ -116,6 +116,10 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<jvmArguments>
+						-Dsun.net.client.defaultReadTimeout=30000
+						-Dsun.net.client.defaultConnectTimeout=30000
+					</jvmArguments>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
