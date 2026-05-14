@@ -9,6 +9,7 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/oauth2/callback" element={<ChatPage />} />
       </Routes>
     </>
   );
