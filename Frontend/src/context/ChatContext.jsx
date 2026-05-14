@@ -5,22 +5,36 @@ const ChatContext = createContext();
 export const ChatProvider = ({ children }) => {
   const [roomId, setRoomId] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
-  const [connected, SetConnected] = useState(false);
+  const [connected, setConnected] = useState(false);
   const [token, setToken] = useState(() => localStorage.getItem("jwt") || null);
 
   useEffect(() => {
     if (token) {
       localStorage.setItem("jwt", token);
+      fetchCurrentUser(token);
     } else {
       localStorage.removeItem("jwt");
+      setCurrentUser(null);
     }
   }, [token]);
+
+  const fetchCurrentUser = async (jwt) => {
+    try {
+      const res = await httpClient.get("/api/v1/users/me", {
+        headers: { Authorization: `Bearer ${jwt}` },
+      });
+      setCurrentUser(res.data); // { id, name, email, profilePhoto }
+    } catch {
+      // Token invalid or expired — clear it
+      setToken(null);
+    }
+  };
 
   const logout = () => {
     setToken(null);
     setCurrentUser(null);
     setRoomId("");
-    SetConnected(false);
+    setConnected(false);
   };
 
   return (

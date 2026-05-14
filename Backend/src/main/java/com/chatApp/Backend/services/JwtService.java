@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,10 +32,13 @@ public class JwtService {
         return signingKey;
     }
 
-    public String generateToken(String userId, String username) {
+    public String generateToken(String userId, String email) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("email", email);
+
         return Jwts.builder()
-                .setSubject(username)
-                .claim("userId", userId)
+                .setClaims(claims)
+                .setSubject(userId)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000*60*60*2))
                 .signWith(getKey(), SignatureAlgorithm.HS256)
@@ -51,12 +56,11 @@ public class JwtService {
     }
 
     public String extractUserId(String token) {
-        Claims claims = Jwts.parserBuilder()
+        return Jwts.parserBuilder()
                 .setSigningKey(getKey())
                 .build()
                 .parseClaimsJws(token)
-                .getBody();
-
-        return claims.get("userId", String.class);
+                .getBody()
+                .getSubject();
     }
 }

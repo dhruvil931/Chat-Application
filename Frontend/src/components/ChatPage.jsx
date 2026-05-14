@@ -7,66 +7,136 @@ import useChatContext from "../context/ChatContext";
 import { getMessagesApi } from "../services/RoomService";
 import { baseURL } from "../config/axios";
 
+// Cache of sender email → { name, profilePhoto } fetched from API
+const senderCache = {};
+
+// Avatar component — shows photo if available, else initials
+const Avatar = ({ name, photoUrl, size = "sm" }) => {
+  const dim = size === "sm" ? "w-7 h-7 text-xs" : "w-9 h-9 text-sm";
+  const initial = name ? name[0].toUpperCase() : "?";
+
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={name}
+        className={`${dim} rounded-full object-cover shrink-0 ring-1 ring-white/10`}
+        onError={(e) => {
+          e.target.style.display = "none";
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${dim} rounded-full shrink-0 flex items-center justify-center font-bold`}
+      style={{
+        background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+        color: "#fff",
+      }}
+    >
+      {initial}
+    </div>
+  );
+};
+
+const formatTime = (isoTime) => {
+  if (!isoTime) return "";
+  try {
+    return new Date(isoTime).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+};
+
 const ChatPage = () => {
   const { roomId, currentUser, connected, setConnected, logout, token } =
     useChatContext();
   const navigate = useNavigate();
 
   const [messages, setMessages] = useState([]);
+  const [senderProfiles, setSenderProfiles] = useState({}); // email → { name, profilePhoto }
   const [inputMessage, setInputMessage] = useState("");
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
 
   const stompClientRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Redirect if not connected
   useEffect(() => {
-    if (!connected || !roomId) {
-      navigate("/join", { replace: true });
-    }
+    if (!connected || !roomId) navigate("/join", { replace: true });
   }, [connected, roomId, navigate]);
 
-  // Load initial messages
   useEffect(() => {
     if (!roomId) return;
     loadMessages(0);
   }, [roomId]);
 
-  // Connect WebSocket
   useEffect(() => {
     if (!roomId || !token) return;
 
     const client = new Client({
       webSocketFactory: () => new SockJS(`${baseURL}/chat`),
-      connectHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
+      connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
       onConnect: () => {
-        client.subscribe(`/topic/room/${roomId}`, (message) => {
-          const received = JSON.parse(message.body);
+        setIsConnected(true);
+        client.subscribe(`/topic/room/${roomId}`, (msg) => {
+          const received = JSON.parse(msg.body);
           setMessages((prev) => [...prev, received]);
+          // Fetch sender profile if not yet cached
+          if (received.sender && !senderCache[received.sender]) {
+            fetchSenderProfile(received.sender);
+          }
         });
       },
-      onStompError: (frame) => {
+      onDisconnect: () => setIsConnected(false),
+      onStompError: () => {
         toast.error("Connection error");
-        console.error("STOMP error", frame);
+        setIsConnected(false);
       },
     });
 
     client.activate();
     stompClientRef.current = client;
-
     return () => client.deactivate();
   }, [roomId, token]);
 
-  // Scroll to bottom on new message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const fetchSenderProfile = useCallback(
+    async (email) => {
+      if (senderCache[email]) {
+        setSenderProfiles((p) => ({ ...p, [email]: senderCache[email] }));
+        return;
+      }
+      try {
+        // Backend endpoint: GET /api/v1/users/by-email?email=xxx
+        const res = await fetch(
+          `${baseURL}/api/v1/users/by-email?email=${encodeURIComponent(email)}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const profile = { name: data.name, profilePhoto: data.profilePhoto };
+          senderCache[email] = profile;
+          setSenderProfiles((p) => ({ ...p, [email]: profile }));
+        }
+      } catch {
+        /* silently fail — avatar will fall back to initials */
+      }
+    },
+    [token],
+  );
 
   const loadMessages = async (pageNum) => {
     if (loadingHistory) return;
@@ -74,11 +144,12 @@ const ChatPage = () => {
     try {
       const data = await getMessagesApi(roomId, 20, pageNum);
       if (data.length < 20) setHasMore(false);
-      if (pageNum === 0) {
-        setMessages(data);
-      } else {
-        setMessages((prev) => [...data, ...prev]);
-      }
+      // Pre-fetch profiles for all unique senders
+      const uniqueSenders = [
+        ...new Set(data.map((m) => m.sender).filter(Boolean)),
+      ];
+      uniqueSenders.forEach(fetchSenderProfile);
+      setMessages((prev) => (pageNum === 0 ? data : [...data, ...prev]));
     } catch {
       toast.error("Failed to load messages");
     } finally {
@@ -94,12 +165,7 @@ const ChatPage = () => {
 
   const sendMessage = () => {
     const text = inputMessage.trim();
-    if (!text) return;
-
-    if (!stompClientRef.current?.connected) {
-      toast.error("Not connected to room");
-      return;
-    }
+    if (!text || !stompClientRef.current?.connected) return;
 
     stompClientRef.current.publish({
       destination: `/app/sendMessage/${roomId}`,
@@ -109,7 +175,6 @@ const ChatPage = () => {
         roomId,
       }),
     });
-
     setInputMessage("");
     inputRef.current?.focus();
   };
@@ -127,73 +192,82 @@ const ChatPage = () => {
     navigate("/join");
   };
 
-  const isMine = (msg) => msg.sender === (currentUser?.email ?? "anonymous");
+  const isMine = (msg) => msg.sender === (currentUser?.email ?? "");
 
-  const formatTime = (isoTime) => {
-    if (!isoTime) return "";
-    try {
-      return new Date(isoTime).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return "";
-    }
+  const getSenderProfile = (email) => {
+    if (email === currentUser?.email) return currentUser;
+    return senderProfiles[email] || null;
   };
 
   return (
-    <div className="h-screen bg-gray-950 flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-5 py-3.5 bg-gray-900 border-b border-gray-800 shrink-0">
+    <div className="h-screen flex flex-col" style={{ background: "#07090f" }}>
+      {/* ── Header ── */}
+      <header
+        className="flex items-center justify-between px-5 py-3.5 shrink-0"
+        style={{
+          background: "#0e1521",
+          borderBottom: "1px solid rgba(99,102,241,0.12)",
+        }}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-500/10 border border-indigo-500/20 rounded-lg flex items-center justify-center">
-            <span className="text-sm">💬</span>
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            style={{
+              background: "rgba(99,102,241,0.12)",
+              border: "1px solid rgba(99,102,241,0.2)",
+            }}
+          >
+            <svg viewBox="0 0 20 20" className="w-4 h-4" fill="none">
+              <path
+                d="M10 2C5.59 2 2 5.13 2 9c0 1.8.7 3.45 1.85 4.71L2 18l4.58-1.5C7.6 16.82 8.78 17 10 17c4.41 0 8-3.13 8-7s-3.59-8-8-8z"
+                fill="#818cf8"
+              />
+            </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-white leading-none">
-              Room: <span className="text-indigo-400 font-mono">{roomId}</span>
+            <p
+              className="text-sm font-semibold leading-none"
+              style={{ color: "#c7d2fe" }}
+            >
+              Room: <span className="font-mono text-indigo-400">{roomId}</span>
             </p>
-            <p className="text-xs text-gray-600 mt-0.5">
-              {stompClientRef.current?.connected ? (
-                <span className="text-emerald-500">● Connected</span>
+            <p className="text-xs mt-0.5">
+              {isConnected ? (
+                <span style={{ color: "#34d399" }}>● Live</span>
               ) : (
-                <span className="text-gray-600">● Connecting…</span>
+                <span style={{ color: "#6b7280" }}>● Connecting…</span>
               )}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* User avatar */}
-          {currentUser?.profilePhoto ? (
-            <img
-              src={currentUser.profilePhoto}
-              alt={currentUser.name}
-              className="w-8 h-8 rounded-full object-cover ring-2 ring-indigo-500/30"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-xs font-bold">
-              {currentUser?.name?.[0]?.toUpperCase() ?? "?"}
-            </div>
-          )}
+          <Avatar
+            name={currentUser?.name}
+            photoUrl={currentUser?.profilePhoto}
+            size="md"
+          />
           <button
             onClick={handleLeave}
-            className="text-xs text-gray-600 hover:text-gray-400 px-3 py-1.5 rounded-lg border border-gray-800 hover:border-gray-700 transition-colors cursor-pointer"
+            className="text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+            style={{ color: "#4a5568", border: "1px solid #1e2a3a" }}
+            onMouseEnter={(e) => (e.target.style.color = "#9ca3af")}
+            onMouseLeave={(e) => (e.target.style.color = "#4a5568")}
           >
             Leave
           </button>
         </div>
       </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-        {/* Load more */}
+      {/* ── Messages ── */}
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
         {hasMore && (
           <div className="flex justify-center">
             <button
               onClick={loadMore}
               disabled={loadingHistory}
-              className="text-xs text-gray-600 hover:text-gray-400 px-4 py-1.5 rounded-full border border-gray-800 hover:border-gray-700 transition-colors disabled:opacity-40 cursor-pointer"
+              className="text-xs px-4 py-1.5 rounded-full transition-colors disabled:opacity-40 cursor-pointer"
+              style={{ color: "#4a5568", border: "1px solid #1e2a3a" }}
             >
               {loadingHistory ? "Loading…" : "Load earlier messages"}
             </button>
@@ -203,7 +277,7 @@ const ChatPage = () => {
         {messages.length === 0 && !loadingHistory && (
           <div className="flex flex-col items-center justify-center h-48 gap-2">
             <span className="text-3xl">👋</span>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm" style={{ color: "#2d3a52" }}>
               No messages yet. Say something!
             </p>
           </div>
@@ -211,44 +285,110 @@ const ChatPage = () => {
 
         {messages.map((msg, i) => {
           const mine = isMine(msg);
+          const profile = getSenderProfile(msg.sender);
+          const displayName = profile?.name ?? msg.sender ?? "Unknown";
+          const photoUrl = profile?.profilePhoto ?? null;
+
+          // Group consecutive messages from same sender
+          const prevMsg = messages[i - 1];
+          const showAvatar = !prevMsg || prevMsg.sender !== msg.sender;
+
           return (
             <div
               key={i}
-              className={`flex ${mine ? "justify-end" : "justify-start"}`}
+              className={`flex items-end gap-2.5 ${mine ? "justify-end" : "justify-start"}`}
             >
+              {/* Other's avatar — left side */}
+              {!mine && (
+                <div className="shrink-0 w-7">
+                  {showAvatar ? (
+                    <Avatar name={displayName} photoUrl={photoUrl} size="sm" />
+                  ) : (
+                    <div className="w-7" />
+                  )}
+                </div>
+              )}
+
               <div
-                className={`max-w-[72%] ${
-                  mine ? "items-end" : "items-start"
-                } flex flex-col gap-1`}
+                className={`flex flex-col max-w-[68%] ${mine ? "items-end" : "items-start"}`}
               >
-                {/* Sender name (only for others) */}
-                {!mine && (
-                  <span className="text-xs text-gray-600 px-1">
-                    {msg.sender}
+                {/* Sender name for others, first in a group */}
+                {!mine && showAvatar && (
+                  <span
+                    className="text-[11px] mb-1 px-1 font-medium"
+                    style={{ color: "#4a5a75" }}
+                  >
+                    {displayName}
                   </span>
                 )}
+
+                {/* Bubble */}
                 <div
-                  className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed wrap-break-word ${
+                  className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words"
+                  style={
                     mine
-                      ? "bg-indigo-600 text-white rounded-br-sm"
-                      : "bg-gray-800 text-gray-200 rounded-bl-sm"
-                  }`}
+                      ? {
+                          background:
+                            "linear-gradient(135deg, #6366f1, #4f46e5)",
+                          color: "#fff",
+                          borderBottomRightRadius: "4px",
+                          boxShadow: "0 2px 12px rgba(99,102,241,0.2)",
+                        }
+                      : {
+                          background: "#131c2e",
+                          color: "#c7d2fe",
+                          borderBottomLeftRadius: "4px",
+                          border: "1px solid rgba(99,102,241,0.1)",
+                        }
+                  }
                 >
                   {msg.content}
                 </div>
-                <span className="text-[10px] text-gray-700 px-1">
+
+                <span
+                  className="text-[10px] mt-1 px-1"
+                  style={{ color: "#253047" }}
+                >
                   {formatTime(msg.time)}
                 </span>
               </div>
+
+              {/* My avatar — right side */}
+              {mine && (
+                <div className="shrink-0 w-7">
+                  {showAvatar ? (
+                    <Avatar
+                      name={currentUser?.name}
+                      photoUrl={currentUser?.profilePhoto}
+                      size="sm"
+                    />
+                  ) : (
+                    <div className="w-7" />
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
+
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="shrink-0 px-4 py-3 bg-gray-900 border-t border-gray-800">
-        <div className="flex items-end gap-3 bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 focus-within:border-indigo-500/40 focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+      {/* ── Input ── */}
+      <div
+        className="shrink-0 px-4 py-3"
+        style={{
+          background: "#0e1521",
+          borderTop: "1px solid rgba(99,102,241,0.10)",
+        }}
+      >
+        <div
+          className="flex items-end gap-3 px-4 py-2.5 rounded-2xl transition-all"
+          style={{
+            background: "#0a0f1b",
+            border: "1px solid rgba(99,102,241,0.15)",
+          }}
+        >
           <textarea
             ref={inputRef}
             value={inputMessage}
@@ -256,29 +396,41 @@ const ChatPage = () => {
             onKeyDown={handleKeyDown}
             placeholder="Type a message…"
             rows={1}
-            className="flex-1 bg-transparent text-sm text-gray-300 placeholder-gray-700 outline-none resize-none max-h-32 overflow-y-auto"
+            className="flex-1 bg-transparent text-sm outline-none resize-none max-h-32 overflow-y-auto"
+            style={{ color: "#c7d2fe", caretColor: "#6366f1" }}
           />
           <button
             onClick={sendMessage}
             disabled={!inputMessage.trim()}
-            className="shrink-0 w-8 h-8 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-lg transition-colors cursor-pointer disabled:cursor-default"
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl transition-all cursor-pointer disabled:cursor-default"
+            style={{
+              background: inputMessage.trim()
+                ? "linear-gradient(135deg, #6366f1, #4f46e5)"
+                : "#1a2540",
+              boxShadow: inputMessage.trim()
+                ? "0 2px 10px rgba(99,102,241,0.3)"
+                : "none",
+            }}
           >
             <svg
-              viewBox="0 0 24 24"
-              className="w-4 h-4 rotate-45"
+              viewBox="0 0 20 20"
+              className="w-4 h-4"
               fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
+              stroke="white"
+              strokeWidth="2"
             >
               <path
-                d="M12 19V5M5 12l7-7 7 7"
+                d="M3 10h14M10 3l7 7-7 7"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
           </button>
         </div>
-        <p className="text-[10px] text-gray-800 mt-1.5 text-center">
+        <p
+          className="text-[10px] text-center mt-1.5"
+          style={{ color: "#1a2540" }}
+        >
           Enter to send · Shift+Enter for new line
         </p>
       </div>
