@@ -6,11 +6,7 @@ import "./App.css";
 import JoinCreateChat from "./pages/JoinCreateChat";
 
 function App() {
-  return (
-    <>
-      <JoinCreateChat />
-    </>
-  );
+  return null;
 }
 
 export default App;
