@@ -1,11 +1,27 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const ChatContext = createContext();
 
 export const ChatProvider = ({ children }) => {
   const [roomId, setRoomId] = useState("");
-  const [currentUser, setCurrentUser] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
   const [connected, SetConnected] = useState(false);
+  const [token, setToken] = useState(() => localStorage.getItem("jwt") || null);
+
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem("jwt", token);
+    } else {
+      localStorage.removeItem("jwt");
+    }
+  }, [token]);
+
+  const logout = () => {
+    setToken(null);
+    setCurrentUser(null);
+    setRoomId("");
+    SetConnected(false);
+  };
 
   return (
     <ChatContext.Provider
@@ -14,8 +30,11 @@ export const ChatProvider = ({ children }) => {
         setRoomId,
         currentUser,
         setCurrentUser,
+        token,
+        setToken,
         connected,
         SetConnected,
+        logout,
       }}
     >
       {children}
