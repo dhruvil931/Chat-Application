@@ -40,7 +40,7 @@ public class SecurityConfig {
                 )
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED )
                 )
                 .authorizeHttpRequests(auth -> auth
                         // must be public for SockJS handshake + info endpoint
