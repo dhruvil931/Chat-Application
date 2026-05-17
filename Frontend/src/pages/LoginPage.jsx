@@ -315,6 +315,7 @@ export default function LoginPage() {
               <span
                 className="cursor-pointer transition-colors underline underline-offset-2 hover:text-indigo-400"
                 style={{ color: "#344869" }}
+                onClick={navigate("/privacy-policy")}
               >
                 Terms
               </span>{" "}
@@ -322,6 +323,7 @@ export default function LoginPage() {
               <span
                 className="cursor-pointer transition-colors underline underline-offset-2 hover:text-indigo-400"
                 style={{ color: "#344869" }}
+                onClick={navigate("/privacy-policy")}
               >
                 Privacy Policy
               </span>

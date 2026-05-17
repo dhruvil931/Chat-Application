@@ -7,6 +7,7 @@ import OAuthCallbackPage from "../pages/OAuthCallbackPage";
 import ProtectedRoute from "./ProtectedRoute";
 import JoinCreateChat from "../pages/JoinCreateChat";
 import NotFoundPage from "../pages/NotFoundPage";
+import PrivacyPolicy from "../pages/PrivacyPolicy"
 
 const AppRoutes = () => {
   return (
@@ -30,6 +31,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
