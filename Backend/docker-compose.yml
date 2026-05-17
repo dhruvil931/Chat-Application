@@ -15,8 +15,6 @@ services:
       - app-network
 
   boot-app:
-    image: dhruvilkapadiya/chatback:latest
-
     build:
       context: .
       dockerfile: Dockerfile
