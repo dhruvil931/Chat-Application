@@ -1,5 +1,6 @@
 package com.chatApp.Backend.security;
 
+import com.chatApp.Backend.config.AppConstants;
 import com.chatApp.Backend.dto.LoginResponseDto;
 import com.chatApp.Backend.services.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,11 +34,11 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             ResponseEntity<LoginResponseDto> loginResponse = authService.handleOAuth2LoginRequest(oAuth2User, registrationId);
 
             String jwt = loginResponse.getBody().getJwt();
-            String redirectUrl = "http://localhost:5173/oauth2/callback?token=" + jwt;
+            String redirectUrl = AppConstants.FRONTEND_BASED_URL + "/oauth2/callback?token=" + jwt;
             response.sendRedirect(redirectUrl);
         } catch (Exception e) {
             log.error("OAuth2 login failed: {}", e.getMessage());
-            response.sendRedirect("http://localhost:5173/oauth2/callback?error=true");
+            response.sendRedirect(AppConstants.FRONTEND_BASED_URL + "/oauth2/callback?error=true");
         }
     }
 }

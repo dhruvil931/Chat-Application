@@ -1,5 +1,6 @@
 package com.chatApp.Backend.security;
 
+import com.chatApp.Backend.config.AppConstants;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,7 @@ public class SecurityConfig {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.getWriter().write("OAuth2 authentication failed");
                         })
-                        .loginPage("http://localhost:5173")
+                        .loginPage(AppConstants.FRONTEND_BASED_URL)
                 )
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
@@ -65,7 +66,7 @@ public class SecurityConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(List.of(AppConstants.FRONTEND_BASED_URL));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
