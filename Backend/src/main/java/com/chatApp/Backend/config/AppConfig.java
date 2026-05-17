@@ -7,11 +7,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class AppConfig {
-    @PostConstruct
-    public void testDeploy() {
-        System.out.println("DEPLOY TEST 123456");
-    }
-
     @Bean
     public ModelMapper modelMapper() {
         return new ModelMapper();
