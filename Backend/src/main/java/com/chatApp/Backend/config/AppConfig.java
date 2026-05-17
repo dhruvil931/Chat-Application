@@ -8,8 +8,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AppConfig {
     @PostConstruct
-    public void checkMongoUri() {
-        System.out.println("MONGO URI = " + System.getenv("MONGO_URI"));
+    public void testDeploy() {
+        System.out.println("DEPLOY TEST 123456");
+        System.exit(1);
     }
 
     @Bean
