@@ -10,7 +10,6 @@ public class AppConfig {
     @PostConstruct
     public void testDeploy() {
         System.out.println("DEPLOY TEST 123456");
-        System.exit(1);
     }
 
     @Bean
