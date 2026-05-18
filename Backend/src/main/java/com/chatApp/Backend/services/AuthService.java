@@ -48,7 +48,7 @@ public class AuthService {
         User user = userRepository.findFirstByProviderIdAndProviderType(providerId, providerType).orElse(null);
 
         if (user == null && email != null) {
-            user = userRepository.findByEmail(email).orElse(null);
+            user = userRepository.findFirstByEmail(email).orElse(null);
             if (user != null && user.getProviderType() != providerType) {
                 throw new BadCredentialsException("This email is already registered with provider " + user.getProviderType());
             }

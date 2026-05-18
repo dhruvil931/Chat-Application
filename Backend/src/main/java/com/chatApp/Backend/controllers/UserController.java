@@ -41,7 +41,7 @@ public class UserController {
      */
     @GetMapping("/by-email")
     public ResponseEntity<UserProfileDto> getUserByEmail(@RequestParam String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findFirstByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(toDto(user));
     }
