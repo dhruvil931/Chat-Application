@@ -58,7 +58,22 @@ export default function LoginPage() {
     return () => clearTimeout(t);
   }, [token, navigate]);
 
-  const handleLogin = (provider) => {
+  const [waking, setWaking] = useState(false);
+  const [loginError, setLoginError] = useState(null);
+
+  const handleLogin = async (provider) => {
+    setWaking(true);
+    setLoginError(null);
+    try {
+      await fetch(`${baseURL}/health`, {
+        signal: AbortSignal.timeout(60000),
+      });
+    } catch (e) {
+      // backend didn't respond, try OAuth anyway
+      setWaking(false);
+      setLoginError("Server is unavailable. Please try again in a moment.");
+      return;
+    }
     window.location.href = `${baseURL}/oauth2/authorization/${provider}`;
   };
 
@@ -230,9 +245,24 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* Error message */}
+            {loginError && (
+              <div
+                className="mb-4 px-4 py-3 rounded-xl text-center text-sm"
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                  color: "#f87171",
+                }}
+              >
+                ⚠️ {loginError}
+              </div>
+            )}
+
             {/* ── Google Button ── */}
             <button
               onClick={() => handleLogin("google")}
+              disabled={waking}
               onMouseEnter={() => setHovered("google")}
               onMouseLeave={() => setHovered(null)}
               className="w-full flex items-center gap-4 px-5 py-[14px] rounded-2xl mb-3 transition-all duration-200 cursor-pointer group"
@@ -263,7 +293,7 @@ export default function LoginPage() {
                   fontFamily: "'DM Sans', system-ui, sans-serif",
                 }}
               >
-                Continue with Google
+                {waking ? "Connecting..." : "Continue with Google"}
               </span>
               <ArrowIcon color="#374151" />
             </button>
@@ -271,6 +301,7 @@ export default function LoginPage() {
             {/* ── Facebook Button ── */}
             <button
               onClick={() => handleLogin("facebook")}
+              disabled={waking}
               onMouseEnter={() => setHovered("facebook")}
               onMouseLeave={() => setHovered(null)}
               className="w-full flex items-center gap-4 px-5 py-[14px] rounded-2xl transition-all duration-200 cursor-pointer group"
@@ -301,7 +332,7 @@ export default function LoginPage() {
                 className="flex-1 text-left font-semibold text-[14.5px] text-white"
                 style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
               >
-                Continue with Facebook
+                {waking ? "Connecting..." : "Continue with Facebook"}
               </span>
               <ArrowIcon color="white" />
             </button>

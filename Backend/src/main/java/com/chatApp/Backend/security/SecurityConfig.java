@@ -54,7 +54,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         // must be public for SockJS handshake + info endpoint
-                        .requestMatchers("/chat/**", "/oauth2/**", "/login/oauth2/**").permitAll()
+                        .requestMatchers("/chat/**", "/oauth2/**", "/login/oauth2/**", "/health").permitAll()
                         .requestMatchers("/api/v1/users/me").authenticated()
                         .requestMatchers("/api/v1/users/by-email").authenticated()
                         .requestMatchers("/api/v1/**").authenticated()
