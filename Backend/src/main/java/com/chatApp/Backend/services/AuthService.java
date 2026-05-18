@@ -45,7 +45,7 @@ public class AuthService {
             }
         }
 
-        User user = userRepository.findByProviderIdAndProviderType(providerId, providerType).orElse(null);
+        User user = userRepository.findFirstByProviderIdAndProviderType(providerId, providerType).orElse(null);
 
         if (user == null && email != null) {
             user = userRepository.findByEmail(email).orElse(null);

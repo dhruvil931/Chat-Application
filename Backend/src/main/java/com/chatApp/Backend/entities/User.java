@@ -3,6 +3,7 @@ package com.chatApp.Backend.entities;
 import com.chatApp.Backend.entities.type.AuthProviderType;
 import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,6 +18,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Document(collection = "users")
+@CompoundIndex(name = "provider_unique", def = "{'providerId': 1, 'providerType': 1}", unique = true)
 public class User implements UserDetails {
     @Id
     private String id;
