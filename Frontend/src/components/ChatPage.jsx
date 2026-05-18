@@ -59,7 +59,7 @@ const ChatPage = () => {
   const navigate = useNavigate();
 
   const [messages, setMessages] = useState([]);
-  const [senderProfiles, setSenderProfiles] = useState({}); // email → { name, profilePhoto }
+  const [senderProfiles, setSenderProfiles] = useState({});
   const [inputMessage, setInputMessage] = useState("");
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -91,7 +91,6 @@ const ChatPage = () => {
         client.subscribe(`/topic/room/${roomId}`, (msg) => {
           const received = JSON.parse(msg.body);
           setMessages((prev) => [...prev, received]);
-          // Fetch sender profile if not yet cached
           if (received.sender && !senderCache[received.sender]) {
             fetchSenderProfile(received.sender);
           }
@@ -120,7 +119,6 @@ const ChatPage = () => {
         return;
       }
       try {
-        // Backend endpoint: GET /api/v1/users/by-email?email=xxx
         const res = await fetch(
           `${baseURL}/api/v1/users/by-email?email=${encodeURIComponent(email)}`,
           { headers: { Authorization: `Bearer ${token}` } },
@@ -132,7 +130,7 @@ const ChatPage = () => {
           setSenderProfiles((p) => ({ ...p, [email]: profile }));
         }
       } catch {
-        /* silently fail — avatar will fall back to initials */
+        /* silently fail */
       }
     },
     [token],
@@ -144,7 +142,6 @@ const ChatPage = () => {
     try {
       const data = await getMessagesApi(roomId, 20, pageNum);
       if (data.length < 20) setHasMore(false);
-      // Pre-fetch profiles for all unique senders
       const uniqueSenders = [
         ...new Set(data.map((m) => m.sender).filter(Boolean)),
       ];
@@ -185,8 +182,6 @@ const ChatPage = () => {
   const handleInputChange = (e) => {
     const { value } = e.target;
     setInputMessage(value);
-
-    // Grow textarea with content until max height, then allow scrolling.
     e.target.style.height = "auto";
     e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
   };
@@ -217,16 +212,35 @@ const ChatPage = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col" style={{ background: "#07090f" }}>
-      {/* ── Header ── */}
+    /*
+     * Full-screen flex column.
+     * On mobile browsers the viewport height can shift when the virtual
+     * keyboard opens; using 100dvh (dynamic viewport height) keeps the
+     * layout correct.  We fall back to 100vh for older browsers.
+     */
+    <div
+      className="flex flex-col"
+      style={{
+        background: "#07090f",
+        height: "100dvh" /* dynamic viewport — shrinks when keyboard opens */,
+        /* iOS safe-area support */
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
+    >
+      {/* ── Header — sticky to top ── */}
       <header
-        className="flex items-center justify-between px-5 py-3.5 shrink-0"
+        className="flex items-center justify-between px-4 py-3 shrink-0"
         style={{
           background: "#0e1521",
           borderBottom: "1px solid rgba(99,102,241,0.12)",
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
         }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Chat bubble icon */}
           <div
             className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
             style={{
@@ -241,12 +255,17 @@ const ChatPage = () => {
               />
             </svg>
           </div>
-          <div>
+
+          {/* Room info — truncate on small screens */}
+          <div className="min-w-0">
             <p
-              className="text-sm font-semibold leading-none"
+              className="text-sm font-semibold leading-none truncate"
               style={{ color: "#c7d2fe" }}
             >
-              Room: <span className="font-mono text-indigo-400">{roomId}</span>
+              Room:{" "}
+              <span className="font-mono text-indigo-400 truncate">
+                {roomId}
+              </span>
             </p>
             <p className="text-xs mt-0.5">
               {isConnected ? (
@@ -258,7 +277,8 @@ const ChatPage = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Right side — avatar + leave button */}
+        <div className="flex items-center gap-2 shrink-0 ml-2">
           <Avatar
             name={currentUser?.name}
             photoUrl={currentUser?.profilePhoto}
@@ -266,8 +286,13 @@ const ChatPage = () => {
           />
           <button
             onClick={handleLeave}
-            className="text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-            style={{ color: "#4a5568", border: "1px solid #1e2a3a" }}
+            className="text-xs px-3 py-2 rounded-lg transition-colors cursor-pointer"
+            style={{
+              color: "#4a5568",
+              border: "1px solid #1e2a3a",
+              /* slightly larger tap target on mobile */
+              minWidth: "52px",
+            }}
             onMouseEnter={(e) => (e.target.style.color = "#9ca3af")}
             onMouseLeave={(e) => (e.target.style.color = "#4a5568")}
           >
@@ -276,14 +301,14 @@ const ChatPage = () => {
         </div>
       </header>
 
-      {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+      {/* ── Messages — scrollable middle section ── */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
         {hasMore && (
           <div className="flex justify-center">
             <button
               onClick={loadMore}
               disabled={loadingHistory}
-              className="text-xs px-4 py-1.5 rounded-full transition-colors disabled:opacity-40 cursor-pointer"
+              className="text-xs px-4 py-2 rounded-full transition-colors disabled:opacity-40 cursor-pointer"
               style={{ color: "#4a5568", border: "1px solid #1e2a3a" }}
             >
               {loadingHistory ? "Loading…" : "Load earlier messages"}
@@ -306,16 +331,15 @@ const ChatPage = () => {
           const displayName = profile?.name ?? msg.sender ?? "Unknown";
           const photoUrl = profile?.profilePhoto ?? null;
 
-          // Group consecutive messages from same sender
           const prevMsg = messages[i - 1];
           const showAvatar = !prevMsg || prevMsg.sender !== msg.sender;
 
           return (
             <div
               key={msg.id}
-              className={`flex items-end gap-2.5 ${mine ? "justify-end" : "justify-start"}`}
+              className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}
             >
-              {/* Other's avatar — left side */}
+              {/* Other's avatar — left */}
               {!mine && (
                 <div className="shrink-0 w-7">
                   {showAvatar ? (
@@ -326,10 +350,16 @@ const ChatPage = () => {
                 </div>
               )}
 
+              {/*
+               * Bubble column.
+               * max-w-[80%] on mobile, 68% on sm+ so bubbles don't crowd
+               * the screen on narrow devices.
+               */}
               <div
-                className={`flex flex-col max-w-[68%] ${mine ? "items-end" : "items-start"}`}
+                className={`flex flex-col max-w-[80%] sm:max-w-[68%] ${
+                  mine ? "items-end" : "items-start"
+                }`}
               >
-                {/* Sender name for others, first in a group */}
                 {!mine && showAvatar && (
                   <span
                     className="text-[11px] mb-1 px-1 font-medium"
@@ -339,7 +369,6 @@ const ChatPage = () => {
                   </span>
                 )}
 
-                {/* Bubble */}
                 <div
                   className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words"
                   style={
@@ -370,7 +399,7 @@ const ChatPage = () => {
                 </span>
               </div>
 
-              {/* My avatar — right side */}
+              {/* My avatar — right */}
               {mine && (
                 <div className="shrink-0 w-7">
                   {showAvatar ? (
@@ -391,21 +420,24 @@ const ChatPage = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ── Input ── */}
+      {/* ── Input bar — sticky to bottom ── */}
       <div
-        className="shrink-0 px-4 py-3"
+        className="shrink-0 px-3 py-3"
         style={{
           background: "#0e1521",
           borderTop: "1px solid rgba(99,102,241,0.10)",
+          position: "sticky",
+          bottom: 0,
+          zIndex: 10,
         }}
       >
         <div
-          className="flex items-end gap-3 px-4 py-2.5 rounded-2xl transition-all cursor-text"
+          className="flex items-end gap-2 px-3 py-2 rounded-2xl transition-all cursor-text"
           onClick={focusInputBar}
           style={{
             background: "#0a0f1b",
             border: "1px solid rgba(99,102,241,0.15)",
-            minHeight: "52px",
+            minHeight: "48px",
           }}
         >
           <textarea
@@ -446,8 +478,10 @@ const ChatPage = () => {
             </svg>
           </button>
         </div>
+
+        {/* Hint — hidden on very small screens to save space */}
         <p
-          className="text-[10px] text-center mt-1.5"
+          className="hidden sm:block text-[10px] text-center mt-1.5"
           style={{ color: "#1a2540" }}
         >
           Enter to send · Shift+Enter for new line
